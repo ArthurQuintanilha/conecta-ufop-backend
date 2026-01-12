@@ -1,0 +1,16 @@
+{
+  "name": "conecta-ufop-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "cd functions && npm run test",
+    "emulator": "firebase emulators:start",
+    "deploy": "firebase deploy",
+    "deploy:functions": "firebase deploy --only functions",
+    "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:storage": "firebase deploy --only storage",
+    "index": "firebase firestore:indexes > firestore.indexes.json"
+  },
+  "private": true
+}

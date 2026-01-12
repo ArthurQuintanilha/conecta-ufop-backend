@@ -1,0 +1,54 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Conecta UFOP API",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://api-jbiicm2joa-rj.a.run.app",
+      "description": "Produção"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Migrações",
+      "description": "Endpoints para execução de migrações do banco de dados"
+    }
+  ],
+  "paths": {
+    "/migrations-up": {
+      "post": {
+        "tags": ["Migrações"],
+        "summary": "Executar migrações",
+        "description": "Executa todas as migrações pendentes do banco de dados",
+        "responses": {
+          "200": {
+            "description": "Migrações executadas com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MigrationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MigrationResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Migrations completed!"
+          }
+        }
+      }
+    }
+  }
+}
