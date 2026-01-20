@@ -1,12 +1,12 @@
-import { NextFunction, Request, Response } from "express";
+import { Request, Response } from "express";
 import { ValidationError } from "yup";
 import * as logger from "firebase-functions/logger";
 
 export const onError = (
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   err: any,
   req: Request,
   res: Response,
-  next: NextFunction,
 ) => {
   logger.error(err);
 

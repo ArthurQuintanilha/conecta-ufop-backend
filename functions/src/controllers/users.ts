@@ -14,6 +14,7 @@ export const createUser = async (
         stripUnknown: true,
     });
 
+    // eslint-disable-next-line camelcase
     const { nome, email, curso_ocupacao, dtAniversario } = validatedData;
 
     // Aqui, verificamos se o email já existe
@@ -37,6 +38,7 @@ export const createUser = async (
     const userData = {
         nome,
         email,
+        // eslint-disable-next-line camelcase
         curso_ocupacao,
         dtAniversario: dtAniversarioTimestamp,
         criadoEm: admin.firestore.Timestamp.now(),
