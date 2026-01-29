@@ -10,8 +10,9 @@ import { initializeApp, getApps } from "firebase/app";
 
 import { onError } from "./middlewares/error";
 import { migrationsUp } from "./controllers/migrations-controller";
-import { createUser } from "./controllers/users";
+import { createUser, uploadUserProfile, updateUserData } from "./controllers/users";
 import { catchAsyncErrors } from "./middlewares/catch-async-errors";
+import { authenticate } from "./middlewares/authenticate";
 import { setGlobalOptions } from "firebase-functions/v2/options";
 import { createCarona } from "./controllers/carona";
 import { authenticate } from "./middlewares/authenticate";
@@ -52,17 +53,17 @@ const app = express();
 
 // Middlewares globais
 app.use(cors({ origin: true }));
-app.use(express.json());
+app.use(express.json({ limit: "10mb"}));
 app.use("/docs/", serve, setup(swagger));
 
 // Rotas
 app.post("/migrations-up", migrationsUp);
 app.post("/users", catchAsyncErrors(createUser));
 
-// ✅ Rota de carona protegida por autenticação
 app.post("/carona", authenticate, catchAsyncErrors(createCarona));
+app.post("/users/perfil", authenticate, catchAsyncErrors(uploadUserProfile));
+app.put("/users", authenticate, catchAsyncErrors(updateUserData));
 
-// Middleware de tratamento de erros
 app.use(onError);
 
 // Exporta a função do Firebase Functions
