@@ -27,6 +27,7 @@ export const postUserSchema = object({
     )
     .required("Data de aniversário é obrigatória")
     .typeError("Data inválida"),
+    genero: string().required("Gênero é obrigatório"),
 });
 
 export const uploadProfileImageSchema = object({
@@ -42,5 +43,7 @@ export const updateUserSchema = object({
       originalValue ? new Date(originalValue) : value
     )
     .required("Data de aniversário é obrigatória")
-    .typeError("Data inválida"),    descricao: string().required("Descrição é obrigatória"),
+    .typeError("Data inválida"),
+    genero: string().required("Gênero é obrigatório"),
+    descricao: string().required("Descrição é obrigatória"),
 });

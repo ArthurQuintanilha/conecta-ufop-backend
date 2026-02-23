@@ -17,7 +17,7 @@ export const createUser = async (
   });
 
   // eslint-disable-next-line camelcase
-  const { nome, email, senha, curso_ocupacao, dtAniversario } = validatedData;
+  const { nome, email, senha, curso_ocupacao, dtAniversario, genero } = validatedData;
 
   try {
     const usersRef = admin.firestore().collection("usuarios");
@@ -57,6 +57,7 @@ export const createUser = async (
       dtAniversario: dtAniversarioTimestamp,
       criadoEm: admin.firestore.Timestamp.now(),
       caronasOfericidasCont: 0,
+      genero: genero,
     };
 
     try {
@@ -156,6 +157,7 @@ export const updateUserData = async (
       dtAniversario: admin.firestore.Timestamp.fromDate(
         validatedData.dtAniversario
       ),
+      genero: validatedData.genero,
       descricao: validatedData.descricao,
       atualizadoEm: admin.firestore.FieldValue.serverTimestamp(),
     };
