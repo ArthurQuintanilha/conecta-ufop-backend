@@ -19,6 +19,7 @@ import {
 import { catchAsyncErrors } from "./middlewares/catch-async-errors";
 import { authenticate, optionalAuthenticate } from "./middlewares/authenticate";
 import { setGlobalOptions } from "firebase-functions/v2/options";
+ 
 import {
   getCaronaById,
   createCarona,
@@ -35,7 +36,7 @@ import {
   getAvaliacoes,
 } from "./controllers/avaliacao-controller";
 
-admin.initializeApp();
+ admin.initializeApp();
 
 if (process.env.NODE_ENV === "test") {
   process.env.FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099";

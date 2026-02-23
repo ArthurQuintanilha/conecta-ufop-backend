@@ -296,19 +296,42 @@ export const getAllCaronas = async (req: Request, res: Response) => {
         return null;
       }
 
-      let motoristaData = { nome: "Desconhecido", notaMedia: 0, fotoUrl: "" };
-      if (data.motoristaId) {
-        const userDoc = await admin.firestore().collection("usuarios").doc(data.motoristaId).get();
-        if (userDoc.exists) {
-          const uData = userDoc.data();
-          motoristaData = {
-            nome: uData?.nome || "Usuário",
-            notaMedia: uData?.notaMedia || 5.0,
-            fotoUrl: uData?.fotoUrl || null
-          };
+    let motoristaData = { nome: "Desconhecido", notaMedia: 0, fotoUrl: ""};
 
-        }
-      }
+if (data.motoristaId) {
+
+  const userDoc = await admin.firestore()
+    .collection("users")
+    .doc(data.motoristaId)
+    .get();
+
+  if (userDoc.exists) {
+
+    const uData = userDoc.data();
+    const avaliacoesSnap = await admin.firestore()
+      .collection("avaliacoes")
+      .where("motoristaId", "==", data.motoristaId)
+      .get();
+
+    let notaMedia = 0;
+    if (!avaliacoesSnap.empty) {
+
+      const soma = avaliacoesSnap.docs.reduce(
+        (acc, doc) => acc + doc.data().nota,
+        0
+      );
+
+      notaMedia = soma / avaliacoesSnap.size;
+    }
+
+    motoristaData = {
+      nome: uData?.nome || "Usuário",
+      notaMedia: notaMedia,
+      fotoUrl: uData?.fotoUrl || ""
+    };
+  }
+
+}
       return {
         id: doc.id,
         criadoEm: data.criadoEm?.toDate(),
