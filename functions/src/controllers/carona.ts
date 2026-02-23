@@ -296,42 +296,42 @@ export const getAllCaronas = async (req: Request, res: Response) => {
         return null;
       }
 
-    let motoristaData = { nome: "Desconhecido", notaMedia: 0, fotoUrl: ""};
+      let motoristaData = { nome: "Desconhecido", notaMedia: 0, fotoUrl: "" };
 
-if (data.motoristaId) {
+      if (data.motoristaId) {
 
-  const userDoc = await admin.firestore()
-    .collection("users")
-    .doc(data.motoristaId)
-    .get();
+        const userDoc = await admin.firestore()
+          .collection("users")
+          .doc(data.motoristaId)
+          .get();
 
-  if (userDoc.exists) {
+        if (userDoc.exists) {
 
-    const uData = userDoc.data();
-    const avaliacoesSnap = await admin.firestore()
-      .collection("avaliacoes")
-      .where("motoristaId", "==", data.motoristaId)
-      .get();
+          const uData = userDoc.data();
+          const avaliacoesSnap = await admin.firestore()
+            .collection("avaliacoes")
+            .where("motoristaId", "==", data.motoristaId)
+            .get();
 
-    let notaMedia = 0;
-    if (!avaliacoesSnap.empty) {
+          let notaMedia = 0;
+          if (!avaliacoesSnap.empty) {
 
-      const soma = avaliacoesSnap.docs.reduce(
-        (acc, doc) => acc + doc.data().nota,
-        0
-      );
+            const soma = avaliacoesSnap.docs.reduce(
+              (acc, doc) => acc + doc.data().nota,
+              0
+            );
 
-      notaMedia = soma / avaliacoesSnap.size;
-    }
+            notaMedia = soma / avaliacoesSnap.size;
+          }
 
-    motoristaData = {
-      nome: uData?.nome || "Usuário",
-      notaMedia: notaMedia,
-      fotoUrl: uData?.fotoUrl || ""
-    };
-  }
+          motoristaData = {
+            nome: uData?.nome || "Usuário",
+            notaMedia: notaMedia,
+            fotoUrl: uData?.fotoUrl || ""
+          };
+        }
 
-}
+      }
       return {
         id: doc.id,
         criadoEm: data.criadoEm?.toDate(),
