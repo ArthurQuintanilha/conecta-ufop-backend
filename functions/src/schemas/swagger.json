@@ -710,6 +710,15 @@
                         "properties": {
                           "id": { "type": "string" },
                           "papel": { "type": "string", "example": "motorista" },
+                          "motorista": {
+                            "type": "object",
+                            "description": "Dados do motorista",
+                            "properties": {
+                              "nome": { "type": "string" },
+                              "fotoUrl": { "type": "string", "description": "URL da foto de perfil" },
+                              "notaMedia": { "type": "number", "description": "Nota média das avaliações recebidas" }
+                            }
+                          },
                           "veiculo": { "$ref": "#/components/schemas/VeiculoCaronaResponse" },
                           "origem": { "type": "object", "description": "Objeto completo da origem" },
                           "destino": { "type": "object", "description": "Objeto completo do destino" },
@@ -732,7 +741,16 @@
                           "id": { "type": "string" },
                           "papel": { "type": "string", "example": "passageiro" },
                           "status": { "type": "string", "enum": ["CONFIRMADO", "SOLICITADO"] },
-                          "motorista": { "type": "object", "description": "Dados do motorista" },
+                          "motorista": {
+                            "type": "object",
+                            "description": "Dados do motorista",
+                            "properties": {
+                              "nome": { "type": "string" },
+                              "fotoUrl": { "type": "string", "description": "URL da foto de perfil" },
+                              "perfil": { "type": "string", "description": "Resumo do perfil (idade, curso/ocupação)" },
+                              "notaMedia": { "type": "number", "description": "Nota média das avaliações recebidas pelo motorista" }
+                            }
+                          },
                           "veiculo": { "$ref": "#/components/schemas/VeiculoCaronaResponse" },
                           "origem": { "type": "object", "description": "Objeto completo da origem" },
                           "destino": { "type": "object", "description": "Objeto completo do destino" },

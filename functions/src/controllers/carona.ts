@@ -296,42 +296,10 @@ export const getAllCaronas = async (req: Request, res: Response) => {
         return null;
       }
 
-      let motoristaData = { nome: "Desconhecido", notaMedia: 0, fotoUrl: "" };
+      const motoristaData = data.motoristaId
+        ? await getDetalhesMotorista(data.motoristaId)
+        : { nome: "Desconhecido", fotoUrl: "", notaMedia: 0 };
 
-      if (data.motoristaId) {
-
-        const userDoc = await admin.firestore()
-          .collection("users")
-          .doc(data.motoristaId)
-          .get();
-
-        if (userDoc.exists) {
-
-          const uData = userDoc.data();
-          const avaliacoesSnap = await admin.firestore()
-            .collection("avaliacoes")
-            .where("motoristaId", "==", data.motoristaId)
-            .get();
-
-          let notaMedia = 0;
-          if (!avaliacoesSnap.empty) {
-
-            const soma = avaliacoesSnap.docs.reduce(
-              (acc, doc) => acc + doc.data().nota,
-              0
-            );
-
-            notaMedia = soma / avaliacoesSnap.size;
-          }
-
-          motoristaData = {
-            nome: uData?.nome || "Usuário",
-            notaMedia: notaMedia,
-            fotoUrl: uData?.fotoUrl || ""
-          };
-        }
-
-      }
       return {
         id: doc.id,
         criadoEm: data.criadoEm?.toDate(),
@@ -379,6 +347,38 @@ function normalizarVeiculo(veiculo: unknown): { modelo: string; placa: string; v
 }
 
 /**
+ * Busca detalhes do motorista incluindo nota média (para motoristas que recebem avaliações).
+ * @param {string} motoristaId - ID do motorista
+ * @return {Promise<{nome: string, fotoUrl: string, perfil?: string, notaMedia: number}>} Dados do motorista
+ */
+async function getDetalhesMotorista(motoristaId: string) {
+  const userSnap = await admin.firestore().collection("usuarios").doc(motoristaId).get();
+  const u = userSnap.exists ? userSnap.data() : null;
+  let idade = 0;
+  if (u?.dtAniversario) {
+    idade = new Date().getFullYear() - u.dtAniversario.toDate().getFullYear();
+  }
+  const perfil = `${idade} anos, ${u?.curso_ocupacao || ""}`;
+
+  const avaliacoesSnap = await admin.firestore()
+    .collection("avaliacoes")
+    .where("motoristaId", "==", motoristaId)
+    .get();
+  let notaMedia = 0;
+  if (!avaliacoesSnap.empty) {
+    const soma = avaliacoesSnap.docs.reduce((acc, d) => acc + d.data().nota, 0);
+    notaMedia = soma / avaliacoesSnap.size;
+  }
+
+  return {
+    nome: u?.nome || "Desconhecido",
+    fotoUrl: u?.fotoUrl || "",
+    perfil,
+    notaMedia,
+  };
+}
+
+/**
  * Busca os detalhes do usuário para exibição em listas de caronas.
  * @param {string} userId - ID do usuário no Firestore
  * @return {Promise<object|null>} Dados do usuário ou null se não encontrado
@@ -417,7 +417,7 @@ export const getMinhasCaronas = async (req: Request, res: Response) => {
       .where("motoristaId", "==", userId)
       .get();
 
-    const motoristaUser = await getDetalhesUsuario(userId);
+    const motoristaUser = await getDetalhesMotorista(userId);
 
     for (const doc of caronasMotoristaSnap.docs) {
       const data = doc.data();
@@ -447,7 +447,7 @@ export const getMinhasCaronas = async (req: Request, res: Response) => {
       comoMotorista.push({
         id: doc.id,
         eMotorista: true,
-        motorista: motoristaUser ? { nome: motoristaUser.nome, fotoUrl: motoristaUser.fotoUrl } : null,
+        motorista: { nome: motoristaUser.nome, fotoUrl: motoristaUser.fotoUrl, notaMedia: motoristaUser.notaMedia },
         veiculo: normalizarVeiculo(data.veiculo),
         origem: origemObj,
         destino: destinoObj,
@@ -481,7 +481,7 @@ export const getMinhasCaronas = async (req: Request, res: Response) => {
 
       const data = doc.data();
       const motoristaId = data.motoristaId;
-      const motorista = await getDetalhesUsuario(motoristaId);
+      const motorista = motoristaId ? await getDetalhesMotorista(motoristaId) : null;
       if (!motorista) return;
 
       const passageirosIds = data.passageiros || [];
@@ -515,6 +515,7 @@ export const getMinhasCaronas = async (req: Request, res: Response) => {
           nome: motorista.nome,
           fotoUrl: motorista.fotoUrl,
           perfil: motorista.perfil,
+          notaMedia: motorista.notaMedia,
         },
         veiculo: normalizarVeiculo(data.veiculo),
         origem: origemObj,
