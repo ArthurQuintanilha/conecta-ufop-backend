@@ -116,6 +116,7 @@ export const getCaronaById = async (req: Request, res: Response) => {
     const caronasMotoristaSnap = await admin.firestore()
       .collection("caronas")
       .where("motoristaId", "==", carona?.motoristaId)
+      .where("status", "==", "FINALIZADA")
       .get();
 
     const caronasCont = caronasMotoristaSnap.size;
