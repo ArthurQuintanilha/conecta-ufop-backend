@@ -350,7 +350,7 @@ function normalizarVeiculo(veiculo: unknown): { modelo: string; placa: string; v
 /**
  * Busca detalhes do motorista incluindo nota média (para motoristas que recebem avaliações).
  * @param {string} motoristaId - ID do motorista
- * @return {Promise<{nome: string, fotoUrl: string, perfil?: string, notaMedia: number}>} Dados do motorista
+ * @return {Promise<Object>} Dados do motorista (nome, fotoUrl, perfil, notaMedia)
  */
 async function getDetalhesMotorista(motoristaId: string) {
   const userSnap = await admin.firestore().collection("usuarios").doc(motoristaId).get();
