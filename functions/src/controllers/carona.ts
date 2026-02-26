@@ -207,7 +207,7 @@ export const getCaronaById = async (req: Request, res: Response) => {
       },
       veiculo: normalizarVeiculo(carona?.veiculo),
       valor: carona?.valor,
-      vagasDisponiveis: carona?.vagas - (carona?.passageiros?.length || 0),
+      vagasDisponiveis: carona?.vagas - (carona?.passageiros?.length + carona?.solicitacoes?.length || 0),
       origem: carona?.origem,
       destino: carona?.destino,
       dtPartida: carona?.dtPartida,
@@ -514,7 +514,7 @@ export const getMinhasCaronas = async (req: Request, res: Response) => {
 
       const passageirosIds = data.passageiros || [];
       const vagasTotal = data.vagas || 0;
-      const vagasDisponiveis = vagasTotal - passageirosIds.length;
+      const vagasDisponiveis = vagasTotal - passageirosIds.length - data.solicitacoes?.length || 0;
 
       const statusCarona = data.status || "ABERTA";
       const souMotorista = data.motoristaId === userId;
