@@ -151,16 +151,30 @@ export const updateUserData = async (
   });
 
   try {
-    const updateData = {
-      nome: validatedData.nome,
-      curso_ocupacao: validatedData.curso_ocupacao,
-      dtAniversario: admin.firestore.Timestamp.fromDate(
-        validatedData.dtAniversario
-      ),
-      genero: validatedData.genero,
-      descricao: validatedData.descricao,
+    const updateData: Record<string, unknown> = {
       atualizadoEm: admin.firestore.FieldValue.serverTimestamp(),
     };
+
+    if (validatedData.nome !== undefined && validatedData.nome !== null) {
+      updateData.nome = validatedData.nome;
+    }
+    if (validatedData.curso_ocupacao !== undefined && validatedData.curso_ocupacao !== null) {
+      updateData.curso_ocupacao = validatedData.curso_ocupacao;
+    }
+    if (validatedData.dtAniversario !== undefined && validatedData.dtAniversario !== null) {
+      updateData.dtAniversario = admin.firestore.Timestamp.fromDate(validatedData.dtAniversario);
+    }
+    if (validatedData.genero !== undefined && validatedData.genero !== null) {
+      updateData.genero = validatedData.genero;
+    }
+    if (validatedData.descricao !== undefined && validatedData.descricao !== null) {
+      updateData.descricao = validatedData.descricao;
+    }
+
+    if (Object.keys(updateData).length <= 1) {
+      res.status(400).send({ message: "Envie ao menos um campo para atualizar" });
+      return;
+    }
 
     await admin.firestore().collection("usuarios").doc(uid).update(updateData);
 

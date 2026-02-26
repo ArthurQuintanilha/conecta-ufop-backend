@@ -6,6 +6,15 @@ import {
   responderSolicitacaoSchema,
 } from "../schemas/caronaSchema";
 import * as logger from "firebase-functions/logger";
+import {
+  enviarEmailSolicitacaoAceita,
+  enviarEmailSolicitacaoRecusada,
+  enviarEmailCaronaIniciada,
+  enviarEmailCaronaFinalizada,
+  enviarEmailNovaSolicitacao,
+  enviarEmailSolicitacaoCancelada,
+  enviarEmailReservaCancelada,
+} from "../services/email";
 
 export const createCarona = async (req: Request, res: Response) => {
   const validatedData = await postCaronaSchema.validate(req.body, {
@@ -266,6 +275,28 @@ export const solicitarCarona = async (req: Request, res: Response) => {
       solicitacoes: admin.firestore.FieldValue.arrayUnion(passageiroID),
     });
 
+    try {
+      const motoristaSnap = await admin.firestore().collection("usuarios").doc(motoristaId).get();
+      const passageiroSnap = await admin.firestore().collection("usuarios").doc(passageiroID).get();
+      const motorista = motoristaSnap.exists ? motoristaSnap.data() : null;
+      const passageiro = passageiroSnap.exists ? passageiroSnap.data() : null;
+      const motoristaEmail = motorista?.email;
+      if (motoristaEmail) {
+        const dados = {
+          motoristaNome: motorista?.nome || "Motorista",
+          motoristaEmail,
+          solicitanteNome: passageiro?.nome || "Usuário",
+          origem: extrairNomeLocal(data?.origem),
+          destino: extrairNomeLocal(data?.destino),
+          dataPartida: formatarDataCarona(data?.dtPartida),
+          dataChegada: formatarDataCarona(data?.dtChegada),
+        };
+        enviarEmailNovaSolicitacao(dados).catch(() => undefined);
+      }
+    } catch (error: any) {
+      logger.error("Erro ao enviar email de nova solicitação", error);
+
+    }
     return res
       .status(200)
       .json({ message: "Solicitação de carona enviada com sucesso!" });
@@ -379,11 +410,7 @@ async function getDetalhesMotorista(motoristaId: string) {
   };
 }
 
-/**
- * Busca os detalhes do usuário para exibição em listas de caronas.
- * @param {string} userId - ID do usuário no Firestore
- * @return {Promise<object|null>} Dados do usuário ou null se não encontrado
- */
+ 
 async function getDetalhesUsuario(userId: string) {
   const userSnap = await admin.firestore().collection("usuarios").doc(userId).get();
   if (!userSnap.exists) return null;
@@ -590,6 +617,16 @@ export const alterarStatusCarona = async (req: Request, res: Response) => {
       status,
     });
 
+    try { 
+      const passageirosIds = data?.passageiros || [];
+      if (passageirosIds.length > 0) {
+        const enviarFn = status === "INICIADA" ? enviarEmailCaronaIniciada : enviarEmailCaronaFinalizada;
+        enviarEmailsParaPassageiros(passageirosIds, data || {}, enviarFn).catch(() => undefined);
+      }
+    } catch (error: any) {
+      logger.error("Erro ao enviar email de carona iniciada/finalizada", error);
+    }
+
     return res.status(200).json({
       message: `Carona ${status === "INICIADA" ? "iniciada" : "finalizada"} com sucesso`,
       status,
@@ -601,6 +638,97 @@ export const alterarStatusCarona = async (req: Request, res: Response) => {
     });
   }
 };
+
+ 
+function formatarDataCarona(ts: admin.firestore.Timestamp | { toDate?: () => Date } | undefined): string | undefined {
+  if (!ts) return undefined;
+  const date = ts && typeof ts === "object" && "toDate" in ts ? (ts as { toDate: () => Date }).toDate() : null;
+  if (!date || !(date instanceof Date) || isNaN(date.getTime())) return undefined;
+  const d = date.getDate().toString().padStart(2, "0");
+  const m = (date.getMonth() + 1).toString().padStart(2, "0");
+  const a = date.getFullYear();
+  const h = date.getHours().toString().padStart(2, "0");
+  const min = date.getMinutes().toString().padStart(2, "0");
+  return `${d}/${m}/${a} às ${h}:${min}`;
+}
+
+ 
+function extrairNomeLocal(val: unknown): string {
+  if (!val) return "";
+  if (typeof val === "object" && val !== null && "nomeLocal" in val) {
+    return String((val as { nomeLocal?: string }).nomeLocal ?? "");
+  }
+  return String(val);
+}
+
+ 
+async function enviarEmailsParaPassageiros(
+  passageirosIds: string[],
+  data: Record<string, unknown>,
+  enviarFn: (d: { passageiroNome: string; passageiroEmail: string; origem: string; destino: string; motoristaNome: string }) => Promise<void>
+): Promise<void> {
+  const motoristaSnap = await admin.firestore()
+    .collection("usuarios")
+    .doc((data.motoristaId as string) || "")
+    .get();
+  const motorista = motoristaSnap.exists ? motoristaSnap.data() : null;
+  const motoristaNome = motorista?.nome || "Motorista";
+  const origem = extrairNomeLocal(data.origem);
+  const destino = extrairNomeLocal(data.destino);
+
+  for (const pid of passageirosIds) {
+    const userSnap = await admin.firestore().collection("usuarios").doc(pid).get();
+    const user = userSnap.exists ? userSnap.data() : null;
+    const email = user?.email;
+    if (!email) continue;
+    try {
+      await enviarFn({
+        passageiroNome: user?.nome || "Passageiro",
+        passageiroEmail: email,
+        origem,
+        destino,
+        motoristaNome,
+      });
+    } catch (error: any) {
+      logger.error("Erro ao enviar email para passageiro", error);
+    }
+  }
+}
+
+ 
+async function enviarEmailAposProcessar(
+  data: Record<string, unknown>,
+  passageiroID: string,
+  aceite: boolean
+): Promise<void> {
+  const passageiroSnap = await admin.firestore()
+    .collection("usuarios")
+    .doc(passageiroID)
+    .get();
+  const passageiro = passageiroSnap.exists ? passageiroSnap.data() : null;
+  const passageiroEmail = passageiro?.email;
+  if (!passageiroEmail) return;
+
+  const motoristaSnap = await admin.firestore()
+    .collection("usuarios")
+    .doc((data.motoristaId as string) || "")
+    .get();
+  const motorista = motoristaSnap.exists ? motoristaSnap.data() : null;
+
+  const dados = {
+    passageiroNome: passageiro?.nome || "Passageiro",
+    passageiroEmail,
+    origem: extrairNomeLocal(data.origem),
+    destino: extrairNomeLocal(data.destino),
+    motoristaNome: motorista?.nome || "Motorista",
+  };
+
+  if (aceite) {
+    await enviarEmailSolicitacaoAceita(dados);
+  } else {
+    await enviarEmailSolicitacaoRecusada(dados);
+  }
+}
 
 export const responderSolicitacao = async (req: Request, res: Response) => {
   const { aceite } = await responderSolicitacaoSchema.validate(req.body, {
@@ -634,6 +762,8 @@ export const responderSolicitacao = async (req: Request, res: Response) => {
         solicitacoes: admin.firestore.FieldValue.arrayRemove(passageiroID),
         recusados: admin.firestore.FieldValue.arrayUnion(passageiroID),
       });
+      // Envia email ao passageiro (não bloqueia a resposta)
+      enviarEmailAposProcessar(data || {}, passageiroID, false).catch(() => undefined);
       return res.status(200).json({ message: "Solicitação recusada com sucesso." });
     } else {
       const capacidadeTotal = data?.vagas || 0;
@@ -653,6 +783,9 @@ export const responderSolicitacao = async (req: Request, res: Response) => {
         passageiros: admin.firestore.FieldValue.arrayUnion(passageiroID)
       });
 
+      // Envia email ao passageiro (não bloqueia a resposta)
+      enviarEmailAposProcessar(data || {}, passageiroID, true).catch(() => undefined);
+
       return res.status(200).json({ message: "Solicitação aceita! Passageiro confirmado." });
     }
   } catch (error: any) {
@@ -660,6 +793,132 @@ export const responderSolicitacao = async (req: Request, res: Response) => {
     return res.status(500).json({
       message: "Erro ao processar solicitação de carona",
       error: error.message,
+    });
+  }
+};
+
+
+export const cancelarSolicitacao = async (req: Request, res: Response) => {
+  try {
+    const { caronaID } = req.params;
+    const passageiroID = (req as any).user?.uid;
+
+    const caronaRef = admin.firestore().collection("caronas").doc(caronaID);
+    const caronaDoc = await caronaRef.get();
+
+    if (!caronaDoc.exists) {
+      return res.status(404).json({ message: "Carona não encontrada" });
+    }
+
+    const data = caronaDoc.data();
+    const solicitacoes = data?.solicitacoes || [];
+
+    if (!solicitacoes.includes(passageiroID)) {
+      return res.status(404).json({ message: "Você não possui solicitação pendente para esta carona" });
+    }
+
+    await caronaRef.update({
+      solicitacoes: admin.firestore.FieldValue.arrayRemove(passageiroID),
+    });
+
+     try {
+      const motoristaId = data?.motoristaId;
+      const motoristaDoc = motoristaId
+        ? await admin.firestore().collection("usuarios").doc(motoristaId).get()
+        : null;
+      const passageiroSnap = await admin.firestore().collection("usuarios").doc(passageiroID).get();
+      const motorista = motoristaDoc?.exists ? motoristaDoc.data() : null;
+      const passageiro = passageiroSnap.exists ? passageiroSnap.data() : null;
+      const motoristaEmail = motorista?.email;
+
+      if (motoristaEmail) {
+        const dados = {
+          motoristaNome: motorista?.nome || "Motorista",
+          motoristaEmail,
+          solicitanteNome: passageiro?.nome || "Usuário",
+          origem: extrairNomeLocal(data?.origem),
+          destino: extrairNomeLocal(data?.destino),
+          dataPartida: formatarDataCarona(data?.dtPartida),
+          dataChegada: formatarDataCarona(data?.dtChegada),
+        };
+        enviarEmailSolicitacaoCancelada(dados).catch(() => undefined);
+      }
+    } catch (error: any) {
+      logger.error("Erro ao enviar email de solicitação cancelada", error);
+    }
+    return res.status(200).json({ message: "Solicitação cancelada com sucesso." });
+  } catch (error: any) {
+    logger.error("Erro ao cancelar solicitação de carona", error);
+    return res.status(500).json({
+      message: "Erro ao cancelar solicitação de carona",
+      error: error?.message,
+    });
+  }
+};
+
+ 
+export const cancelarReserva = async (req: Request, res: Response) => {
+  try {
+    const { caronaID } = req.params;
+    const passageiroID = (req as any).user?.uid;
+
+    const caronaRef = admin.firestore().collection("caronas").doc(caronaID);
+    const caronaDoc = await caronaRef.get();
+
+    if (!caronaDoc.exists) {
+      return res.status(404).json({ message: "Carona não encontrada" });
+    }
+
+    const data = caronaDoc.data();
+    const passageiros = data?.passageiros || [];
+
+    if (!passageiros.includes(passageiroID)) {
+      return res.status(404).json({ message: "Você não possui reserva confirmada nesta carona" });
+    }
+
+    const statusCarona = data?.status || "ABERTA";
+    if (statusCarona !== "ABERTA" && statusCarona !== "INICIADA") {
+      return res.status(400).json({
+        message: "Não é possível cancelar reserva em carona finalizada",
+      });
+    }
+
+    await caronaRef.update({
+      passageiros: admin.firestore.FieldValue.arrayRemove(passageiroID),
+    });
+
+    // Envia email ao motorista sobre o cancelamento (em background)
+    try {
+      const motoristaId = data?.motoristaId;
+      const motoristaDoc = motoristaId
+        ? await admin.firestore().collection("usuarios").doc(motoristaId).get()
+        : null;
+      const passageiroSnap = await admin.firestore().collection("usuarios").doc(passageiroID).get();
+      const motorista = motoristaDoc?.exists ? motoristaDoc.data() : null;
+      const passageiro = passageiroSnap.exists ? passageiroSnap.data() : null;
+      const motoristaEmail = motorista?.email;
+
+      if (motoristaEmail) {
+        const dados = {
+          motoristaNome: motorista?.nome || "Motorista",
+          motoristaEmail,
+          solicitanteNome: passageiro?.nome || "Usuário",
+          origem: extrairNomeLocal(data?.origem),
+          destino: extrairNomeLocal(data?.destino),
+          dataPartida: formatarDataCarona(data?.dtPartida),
+          dataChegada: formatarDataCarona(data?.dtChegada),
+        };
+        enviarEmailReservaCancelada(dados).catch(() => undefined);
+      }
+    } catch (error: any) {
+      logger.error("Erro ao enviar email de reserva cancelada", error);
+    }
+    return res.status(200).json({ message: "Reserva cancelada com sucesso." });
+  } catch (error: any) {
+    logger.error("Erro ao cancelar reserva de carona", error);
+    return res.status(500).json({
+      message: "Erro ao cancelar reserva de carona",
+      error: error?.message,
     });
   }
 };

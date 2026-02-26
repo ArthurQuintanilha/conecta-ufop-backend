@@ -36,14 +36,15 @@ export const uploadProfileImageSchema = object({
 });
 
 export const updateUserSchema = object({
-    nome: string().required("Nome é obrigatório"),
-    curso_ocupacao: string().required("Cruso/Ocupação é obrigatório"),
+    nome: string().optional(),
+    curso_ocupacao: string().optional(),
     dtAniversario: date()
-    .transform((value, originalValue) =>
-      originalValue ? new Date(originalValue) : value
-    )
-    .required("Data de aniversário é obrigatória")
-    .typeError("Data inválida"),
-    genero: string().required("Gênero é obrigatório"),
-    descricao: string().required("Descrição é obrigatória"),
+        .transform((value, originalValue) =>
+            originalValue ? new Date(originalValue) : value
+        )
+        .optional()
+        .nullable()
+        .typeError("Data inválida"),
+    genero: string().optional().nullable(),
+    descricao: string().optional().nullable(),
 });

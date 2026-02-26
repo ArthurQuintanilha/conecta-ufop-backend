@@ -1,3 +1,6 @@
+import * as path from "path";
+import { config as dotenvConfig } from "dotenv";
+dotenvConfig({ path: path.join(__dirname, "..", ".env") });
 import * as admin from "firebase-admin";
 import { connectAuthEmulator, getAuth } from "firebase/auth";
 import express from "express";
@@ -28,6 +31,8 @@ import {
   getMinhasCaronas,
   alterarStatusCarona,
   responderSolicitacao,
+  cancelarSolicitacao,
+  cancelarReserva,
 } from "./controllers/carona";
 import { validateSchema } from "./middlewares/validate-schema";
 import { criarAvaliacaoSchema } from "./schemas/avaliacaoSchema";
@@ -92,6 +97,8 @@ app.put("/users", authenticate, catchAsyncErrors(updateUserData));
 
 app.post("/carona", authenticate, catchAsyncErrors(createCarona));
 app.post("/carona/solicitar/:caronaID", authenticate, catchAsyncErrors(solicitarCarona));
+app.delete("/carona/:caronaID/solicitacao", authenticate, catchAsyncErrors(cancelarSolicitacao));
+app.delete("/carona/:caronaID/reserva", authenticate, catchAsyncErrors(cancelarReserva));
 app.patch("/carona/:caronaID/status", authenticate, catchAsyncErrors(alterarStatusCarona));
 app.patch(
   "/carona/:caronaID/solicitacao/:passageiroID",
