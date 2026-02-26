@@ -1,4 +1,21 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "caronas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "dtChegada", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "caronas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "dtPartida", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": []
 }

@@ -40,6 +40,7 @@ import {
   criarAvaliacao,
   getAvaliacoes,
 } from "./controllers/avaliacao-controller";
+import { atualizarStatusCaronas } from "./jobs/carona-status-job";
 
  admin.initializeApp();
 
@@ -112,3 +113,5 @@ export const api = onRequest(
   { region: "southamerica-east1", maxInstances: 10 },
   app,
 );
+
+export { atualizarStatusCaronas };

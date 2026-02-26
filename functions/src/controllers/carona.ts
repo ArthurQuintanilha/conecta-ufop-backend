@@ -615,6 +615,7 @@ export const alterarStatusCarona = async (req: Request, res: Response) => {
 
     await caronaRef.update({
       status,
+      solicitacoes: [],
     });
 
     try { 
