@@ -106,7 +106,7 @@ export const getAvaliacoes = async (req: Request, res: Response) => {
         fotoUrl: userData?.fotoUrl || "",
         nome: userData?.nome,
         notaMedia,
-        perfil: `${idade} - ${userData?.curso_ocupacao}`,
+        perfil: `${idade} anos, ${userData?.curso_ocupacao}`,
         descricao: userData?.descricao || "",
         createdAt: userData?.createdAt,
         contCaronas: caronasSnap.size,

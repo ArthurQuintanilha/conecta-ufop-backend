@@ -160,7 +160,7 @@ export const getCaronaById = async (req: Request, res: Response) => {
           passageiros.push({
             nome: user?.nome,
             fotoUrl: user?.fotoUrl || "",
-            perfil: `${idadePassageiro} - ${user?.curso_ocupacao}`,
+            perfil: `${idadePassageiro} anos, ${user?.curso_ocupacao}`,
           });
         }
       }
@@ -203,7 +203,7 @@ export const getCaronaById = async (req: Request, res: Response) => {
         fotoUrl: motorista?.fotoUrl || "",
         descricao: motorista?.descricao,
         caronasCont,
-        perfil: `${idadeMotorista} - ${motorista?.curso_ocupacao}`,
+        perfil: `${idadeMotorista} anos, ${motorista?.curso_ocupacao}`,
       },
       veiculo: normalizarVeiculo(carona?.veiculo),
       valor: carona?.valor,
